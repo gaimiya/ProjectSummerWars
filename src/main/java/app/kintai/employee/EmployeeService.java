@@ -123,6 +123,35 @@ public class EmployeeService {
         return "勤怠シートを作り直しました。";
     }
 
+    /**
+     * GAS 版の「社員管理表」から社員を取り込む（切り替え用）。勤怠シート・フォルダ・共有状態はそのまま引き継ぎ、新しくは作らない。
+     * すでに同じ社員番号がいる人は取り込まない（何度押しても同じ結果になる）。
+     */
+    @Transactional
+    public String importFromGas(String sheetUrl) {
+        String id = Ids.of(sheetUrl);
+        if (id == null) throw new BusinessException(null, "社員管理表のURLを入れてください");
+        List<EmployeeImport.Row> rows = EmployeeImport.parse(
+                google.readValues(id, "'社員一覧'!A1:Z"), google.readValues(id, "'参画履歴'!A1:Z"));
+        int added = 0, skipped = 0;
+        List<String> ng = new java.util.ArrayList<>();
+        for (EmployeeImport.Row r : rows) {
+            EmployeeForm f = r.form();
+            if (repo.existsByEmployeeNo(f.getNo())) { skipped++; continue; }
+            if (f.getName().isEmpty() || f.getMail().isEmpty() || f.getJoined() == null) { ng.add(f.getNo() + "（氏名・メール・入社日のどれかが空）"); continue; }
+            Employee e = new Employee();
+            e.setEmployeeNo(f.getNo());
+            apply(e, f);
+            e.setStatus(f.getStatus());
+            e.setSheetUrl(has(f.getSheetUrl()) ? f.getSheetUrl() : null);
+            e.setFolderUrl(has(f.getFolderUrl()) ? f.getFolderUrl() : null);
+            e.setShareState(r.shareState());
+            repo.save(e);
+            added++;
+        }
+        return "取り込みました：" + added + "人　すでにいた：" + skipped + "人" + (ng.isEmpty() ? "" : "　取り込めなかった：" + String.join("、", ng));
+    }
+
     /** 毎朝7時：入社日を迎えた社員に勤怠シートを共有する */
     @Scheduled(cron = "0 0 7 * * *", zone = "Asia/Tokyo")
     @Transactional
