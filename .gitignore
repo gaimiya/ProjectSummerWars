@@ -1,8 +1,0 @@
-node_modules/
-dist/
-build/
-.gradle/
-.idea/
-*.iml
-.env
-*.tsbuildinfo
