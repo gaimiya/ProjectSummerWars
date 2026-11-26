@@ -14,3 +14,12 @@
 形：`{ "errors": [ { "field": "mail", "message": "メールアドレスの形が正しくありません" } ] }`
 
 日付は `2026-12-01`、標準時間は `8:00`、金額は整数（円）。
+
+## 勤怠シートの既存利用（2026-11-26 追加）
+- `POST /api/employees`・`PUT /api/employees/{no}` の本文に `sheetUrl`・`folderUrl` を追加。
+  - 新規で `sheetUrl` が空なら、ひな型から作る。URLがあれば既存のシートを使う。
+  - 変更で `null` は「変えない」、空文字は「外す」。
+
+## フォーム設定
+- `GET /api/settings/forms` … `[{ key: "TRANSPORT"|"EXPENSE", title, url }]`
+- `PUT /api/settings/forms/{key}` … 本文 `{ "url": "https://docs.google.com/forms/…" }`（空で登録解除）
