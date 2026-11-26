@@ -1,3 +1,4 @@
+/* 担当：指輪（画面の見た目）。変更する前に templates/README.md を読み、担当外の人は担当者に相談する */
 /* 画面共通の見た目（左に濃紺のメニュー、右に内容） */
 * { box-sizing: border-box; }
 body { margin: 0; background: #F4F6F9; font-family: "Noto Sans JP", "Hiragino Sans", "Meiryo", sans-serif; color: #1F2430; font-size: 14px; }
