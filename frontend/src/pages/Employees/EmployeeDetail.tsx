@@ -5,7 +5,7 @@ import { ApiError } from '../../api/client'
 import type { EmployeeDetail as Detail, EmployeeForm } from '../../types/employee'
 import { ConfirmBox, Tag, Toast, shareTone } from '../../components/Feedback'
 import { Tabs } from '../../components/Tabs'
-import { AllowanceFields, BasicFields, HistoryFields, PayFields, toFieldErrors } from './EmployeeForm'
+import { AllowanceFields, BasicFields, HistoryFields, PayFields, SheetFields, toFieldErrors } from './EmployeeForm'
 
 type TabKey = 'basic' | 'pay' | 'allow' | 'proj' | 'sheet'
 const TABS: [TabKey, string][] = [['basic', '基本情報'], ['pay', '給与条件'], ['allow', '手当'], ['proj', '案件・参画履歴'], ['sheet', '勤怠シート']]
@@ -74,9 +74,13 @@ export function EmployeeDetail() {
         {tab === 'proj' && <HistoryFields f={f} set={set} errors={errors} />}
         {tab === 'sheet' && (
           <div className="stack">
-            <div><span className="muted">勤怠シート：</span>{d.sheetUrl ? <a href={d.sheetUrl} target="_blank" rel="noreferrer">勤怠表_{d.no}_{d.name}</a> : '未作成'}</div>
-            <div><span className="muted">個人フォルダ：</span>{d.folderUrl ? <a href={d.folderUrl} target="_blank" rel="noreferrer">{d.no}_{d.name}</a> : '未作成'}</div>
+            <SheetFields f={f} set={set} errors={errors} isNew={false} />
+            <div className="row">
+              {d.sheetUrl && <a href={d.sheetUrl} target="_blank" rel="noreferrer">勤怠シートを開く</a>}
+              {d.folderUrl && <a href={d.folderUrl} target="_blank" rel="noreferrer">個人フォルダを開く</a>}
+            </div>
             <div><span className="muted">本人への共有：</span><Tag text={d.shareState} tone={shareTone(d.shareState)} /></div>
+            <p className="muted">URLを書き換えて「変更を保存」を押すと、既存の別のシートに差し替えられます。</p>
           </div>
         )}
       </div>

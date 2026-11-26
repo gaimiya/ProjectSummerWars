@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { employeeApi } from '../../api/employee'
 import { ApiError } from '../../api/client'
 import { Toast } from '../../components/Feedback'
-import { AllowanceFields, BasicFields, PayFields, emptyForm, toFieldErrors } from './EmployeeForm'
+import { AllowanceFields, BasicFields, PayFields, SheetFields, emptyForm, toFieldErrors } from './EmployeeForm'
 
 export function EmployeeNew() {
   const nav = useNavigate()
@@ -35,8 +35,12 @@ export function EmployeeNew() {
         <PayFields f={f} set={set} errors={errors} />
         <AllowanceFields f={f} set={set} errors={errors} />
       </div>
+      <h2 className="section">勤怠シート</h2>
+      <div className="card pad">
+        <SheetFields f={f} set={set} errors={errors} isNew />
+      </div>
       <div className="row" style={{ marginTop: 18 }}>
-        <button className="btn" onClick={submit} disabled={busy}>{busy ? '作成中…' : '登録して勤怠シートを作成'}</button>
+        <button className="btn" onClick={submit} disabled={busy}>{busy ? '登録中…' : f.sheetUrl ? '登録する' : '登録して勤怠シートを作成'}</button>
         <button className="btn-sub" onClick={() => nav('/employees')}>キャンセル</button>
       </div>
     </>

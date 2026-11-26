@@ -8,6 +8,7 @@ export const HOUSING_NOTE = '在籍7か月以上の社員は 10,000 円'
 export const emptyForm = (): Form => ({
   no: '', name: '', kana: '', mail: '', dept: '', type: '正社員', joined: '', status: '在籍',
   payType: '月給', base: 0, stdTime: '8:00', commute: 0, housing: 0, fixed: 0, fixedName: '', history: [],
+  sheetUrl: '', folderUrl: '',
 })
 
 type Props = { f: Form; set: (patch: Partial<Form>) => void; errors: Record<string, string> }
@@ -82,4 +83,17 @@ export function toFieldErrors(list: { field: string | null; message: string }[])
   const m: Record<string, string> = {}
   list.forEach((e) => { if (e.field && !m[e.field]) m[e.field] = e.message })
   return m
+}
+
+/** 勤怠シート・個人フォルダのURL（既存のシートを使う／差し替える） */
+export function SheetFields({ f, set, errors, isNew }: Props & { isNew: boolean }) {
+  return (
+    <div className="grid">
+      <TextField label="勤怠シートのURL" value={f.sheetUrl ?? ''} placeholder="https://docs.google.com/spreadsheets/d/…" error={errors.sheetUrl}
+        note={isNew ? '空なら、ひな型から新しく作ります。既存のシートを使うときはURLを貼ってください' : '既存の別のスプレッドシートに差し替えるときは、そのURLを貼ります'}
+        onChange={(e) => set({ sheetUrl: e.target.value })} />
+      <TextField label="個人フォルダのURL（任意）" value={f.folderUrl ?? ''} placeholder="https://drive.google.com/drive/folders/…" error={errors.folderUrl}
+        onChange={(e) => set({ folderUrl: e.target.value })} />
+    </div>
+  )
 }
