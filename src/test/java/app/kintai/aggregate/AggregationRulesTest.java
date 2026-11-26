@@ -1,3 +1,4 @@
+// 担当：横田さん（集計ルールのテスト）。変更する前に aggregate/README.md を読み、担当外の人は担当者に相談する
 package app.kintai.aggregate;
 
 import app.kintai.attendance.DayRecord;
