@@ -1,0 +1,35 @@
+<!-- Dialog.html：エラー一覧・提出完了の表示 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: sans-serif; font-size: 13px; margin: 12px; color: #1f2430; }
+      .receipt { background: #e7f3ec; border: 1px solid #9fccb0; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+      .receipt .label { font-size: 12px; color: #1e5a36; }
+      .receipt .no { font-size: 22px; font-weight: bold; color: #1e5a36; letter-spacing: 1px; margin-top: 4px; }
+      ul { padding-left: 18px; margin: 0; }
+      li { margin-bottom: 6px; word-break: break-all; }
+      .err { color: #b00020; }
+      .hint { font-size: 12px; color: #5a6170; margin-top: 10px; }
+      button { margin-top: 14px; padding: 7px 18px; border: 0; border-radius: 6px; background: #1f5fc4; color: #fff; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <? if (receiptNo) { ?>
+      <div class="receipt">
+        <div class="label">受付番号（問い合わせのときに伝えてください）</div>
+        <div class="no"><?= receiptNo ?></div>
+      </div>
+    <? } ?>
+    <ul class="<?= isError ? 'err' : '' ?>">
+      <? for (var i = 0; i < messages.length; i++) { ?>
+        <li><?= messages[i] ?></li>
+      <? } ?>
+    </ul>
+    <? if (isError) { ?>
+      <div class="hint">赤くなったセルを直してから、もう一度「勤怠 → 開いている月を提出」を押してください。</div>
+    <? } ?>
+    <button onclick="google.script.host.close()">閉じる</button>
+  </body>
+</html>

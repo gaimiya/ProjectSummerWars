@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kintai}
+    username: ${DB_USER:kintai}
+    password: ${DB_PASSWORD:kintai_dev}
+  jpa:
+    hibernate.ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+app:
+  # 山本さん用ログイン（本番は必ず環境変数で変える）
+  admin-user: ${ADMIN_USER:yamamoto}
+  admin-password: ${ADMIN_PASSWORD:change-me}
+  cors-origin: ${CORS_ORIGIN:http://localhost:5173}
