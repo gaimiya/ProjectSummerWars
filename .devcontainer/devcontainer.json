@@ -1,3 +1,4 @@
+// Codespaces の開発環境の設定（全員共通。変えるときは相談）
 {
   "name": "kintai (Java 21)",
   "image": "mcr.microsoft.com/devcontainers/java:1-21",
