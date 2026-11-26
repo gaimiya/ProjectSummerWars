@@ -31,6 +31,13 @@
       </div>
       <div style="margin-top:18px"><button class="btn">保存</button></div>
     </form>
+
+    <h2 class="section">GAS 版からの切り替え（1回だけ）</h2>
+    <form class="card pad" th:action="@{/settings/import}" method="post"
+          onsubmit="return confirm('GAS 版の社員管理表から社員を取り込みます。すでにいる社員番号は飛ばします。よろしいですか？')">
+      <label>GAS 版の「社員管理表」のURL<input name="sheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…"><small>「社員一覧」「参画履歴」シートを読み、勤怠シート・フォルダ・共有状態をそのまま引き継ぎます。サービスアカウントに閲覧以上で共有してください</small></label>
+      <div style="margin-top:12px"><button class="btn-outline">社員を取り込む</button></div>
+    </form>
   </main>
 </div>
 </body>
