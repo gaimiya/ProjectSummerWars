@@ -1,3 +1,4 @@
+# 担当：全員（アプリの設定）。変更する前に同じフォルダか担当フォルダの README.md を読み、担当外の人は担当者に相談する
 # 何も設定しなければ、H2（ファイルのDB）と仮の Google（FakeGoogleWorkspace）で動く。
 # 本番は SPRING_PROFILES_ACTIVE=prod で PostgreSQL を使い、GOOGLE_CREDENTIALS に鍵ファイルの場所を入れる。
 spring:
