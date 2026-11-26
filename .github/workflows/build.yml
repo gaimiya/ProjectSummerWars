@@ -1,4 +1,4 @@
-# push するたびに、ビルドとテストを自動で動かす。結果は「Actions」タブで見る
+# push するたびに、ビルドとテストを自動で動かす。結果は「Actions」タブで見る（緑＝成功、赤＝失敗）
 name: build
 on: [push, pull_request]
 jobs:
