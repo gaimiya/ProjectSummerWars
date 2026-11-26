@@ -8,6 +8,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <nav className="side">
         <div className="side-title">勤怠・給与集計</div>
         <NavLink to="/employees" className="side-item">社員管理</NavLink>
+        <NavLink to="/settings/forms" className="side-item">フォーム設定</NavLink>
       </nav>
       <main className="main">{children}</main>
     </div>
