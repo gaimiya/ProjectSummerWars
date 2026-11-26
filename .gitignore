@@ -1,3 +1,4 @@
+# Git に入れないファイル（鍵・パスワードは絶対に入れない）
 build/
 .gradle/
 data/
@@ -6,7 +7,6 @@ data/
 *.iml
 .vscode/
 .env
-node_modules/
 # Google の鍵ファイルは絶対に入れない
 *credentials*.json
 service-account*.json
