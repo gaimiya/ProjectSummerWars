@@ -16,8 +16,11 @@ export type EmployeeDetail = {
   history: Assignment[]
 }
 
-/** 登録・変更で送る形 */
-export type EmployeeForm = Omit<EmployeeDetail, 'sheetUrl' | 'folderUrl' | 'shareState'>
+/** 登録・変更で送る形（sheetUrl・folderUrl：新規で空ならひな型から作る。既存シートを使うときはURL） */
+export type EmployeeForm = Omit<EmployeeDetail, 'shareState'>
+
+/** 交通費・経費フォームの設定 */
+export type FormSetting = { key: 'TRANSPORT' | 'EXPENSE'; title: string; url: string }
 
 export type Result = { message: string; no: string }
 export type FieldError = { field: string | null; message: string }
