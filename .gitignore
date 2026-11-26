@@ -1,0 +1,12 @@
+build/
+.gradle/
+data/
+*.log
+.idea/
+*.iml
+.vscode/
+.env
+node_modules/
+# Google の鍵ファイルは絶対に入れない
+*credentials*.json
+service-account*.json
