@@ -1,3 +1,4 @@
+// 担当：山川さん（CSVのテスト）。変更する前に monthly/README.md を読み、担当外の人は担当者に相談する
 package app.kintai.monthly;
 
 import org.junit.jupiter.api.Test;
