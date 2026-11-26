@@ -1,1 +1,2 @@
+// プロジェクト名の設定。基本的に触らない
 rootProject.name = 'kintai'
