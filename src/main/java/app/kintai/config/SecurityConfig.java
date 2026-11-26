@@ -1,3 +1,4 @@
+// 担当：山川さん（ログイン）。変更する前に同じフォルダか担当フォルダの README.md を読み、担当外の人は担当者に相談する
 package app.kintai.config;
 
 import org.springframework.beans.factory.annotation.Value;
