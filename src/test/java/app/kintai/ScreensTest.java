@@ -1,3 +1,4 @@
+// 担当：指輪（画面の流れのテスト）。変更する前に src/test/README.md を読み、担当外の人は担当者に相談する
 package app.kintai;
 
 import org.junit.jupiter.api.Test;
