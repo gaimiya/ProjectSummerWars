@@ -1,3 +1,4 @@
+// ビルド設定。ライブラリを足すときはここに書き、Actions が緑になるか確認する（全員共通）
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.5'
