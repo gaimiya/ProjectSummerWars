@@ -30,7 +30,7 @@ function mockApi() {
     get: (no: string) => wait(find(no)),
     create: (f: EmployeeForm) => {
       if (db.some((e) => e.no === f.no)) return Promise.reject(new ApiError(422, [{ field: 'no', message: `社員番号「${f.no}」はすでに使われています` }]))
-      db.push({ ...f, status: '在籍', sheetUrl: '#', folderUrl: '#', shareState: '入社日に共有予定' })
+      db.push({ ...f, status: '在籍', sheetUrl: f.sheetUrl || '#', folderUrl: f.folderUrl || '#', shareState: '入社日に共有予定' })
       return wait({ message: `${f.name} さんを登録しました（仮データ）。`, no: f.no })
     },
     update: (no: string, f: EmployeeForm) => { Object.assign(find(no), f); return wait({ message: `${f.name} さんの変更を保存しました（仮データ）。`, no }) },
