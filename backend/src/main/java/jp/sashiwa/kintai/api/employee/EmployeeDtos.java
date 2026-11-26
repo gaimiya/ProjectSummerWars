@@ -43,7 +43,10 @@ public final class EmployeeDtos {
             @PositiveOrZero(message = "住宅手当は0以上で入力してください") Integer housing,
             @PositiveOrZero(message = "固定手当は0以上で入力してください") Integer fixed,
             @Size(max = 50) String fixedName,
-            List<@Valid Assignment> history) {}
+            List<@Valid Assignment> history,
+            /** 既存の勤怠シートを使うときのURL（新規で空ならひな型から作る） */
+            @Size(max = 500) @Pattern(regexp = "^$|^https://docs\\.google\\.com/spreadsheets/.*", message = "勤怠シートはGoogleスプレッドシートのURLを入力してください") String sheetUrl,
+            @Size(max = 500) @Pattern(regexp = "^$|^https://drive\\.google\\.com/.*", message = "個人フォルダはGoogleドライブのURLを入力してください") String folderUrl) {}
 
     /** 結果メッセージ */
     public record Result(String message, String no) {}
