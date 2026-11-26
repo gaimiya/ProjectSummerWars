@@ -56,3 +56,5 @@ input.bad{border-color:#B3261E;background:#FFF6F5}
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .login form{width:100%;max-width:380px}
 @media(max-width:700px){.grid{grid-template-columns:1fr}.main{padding:20px}.side{max-width:none}}
+
+.section { font-size: 16px; margin: 22px 0 10px; }
