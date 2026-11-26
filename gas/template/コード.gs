@@ -1,4 +1,4 @@
 function onOpen(e) { Lib.onOpen(e); }
-function submitMonth() { Lib.submitMonth(); }
 function createMonth() { Lib.createMonth(); }
+function checkMonth() { Lib.checkMonth(); }
 function checkSetup() { Lib.checkSetup(); }
