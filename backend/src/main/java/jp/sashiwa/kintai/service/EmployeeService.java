@@ -45,9 +45,14 @@ public class EmployeeService {
         apply(e, f);
         e.setStatus("在籍");
         repo.save(e);
-        // 勤怠シートと個人フォルダを作る（Drive 連携。失敗しても登録は残す）
+        // 既存の勤怠シートURLがあればそれを使う。なければ作る（Drive 連携。失敗しても登録は残す）
         String note;
-        try {
+        if (hasText(f.sheetUrl())) {
+            e.setSheetUrl(f.sheetUrl().trim());
+            e.setFolderUrl(hasText(f.folderUrl()) ? f.folderUrl().trim() : null);
+            e.setShareState("入社日に共有予定");
+            note = "既存の勤怠シートを使います（入社日の朝に本人へ共有します）。";
+        } else try {
             SheetProvisioner.Created c = sheets.create(e);
             e.setSheetUrl(c.sheetUrl());
             e.setFolderUrl(c.folderUrl());
@@ -64,6 +69,9 @@ public class EmployeeService {
         Employee e = find(no);
         apply(e, f);
         if (f.status() != null) e.setStatus(f.status());
+        // 勤怠シート・フォルダの差し替え（null は「変えない」、空文字は「外す」）
+        if (f.sheetUrl() != null) e.setSheetUrl(hasText(f.sheetUrl()) ? f.sheetUrl().trim() : null);
+        if (f.folderUrl() != null) e.setFolderUrl(hasText(f.folderUrl()) ? f.folderUrl().trim() : null);
         e.touch();
         return new Result(e.getName() + " さんの変更を保存しました。", e.getEmployeeNo());
     }
@@ -120,4 +128,6 @@ public class EmployeeService {
     }
 
     static String toHhmm(int m) { return (m / 60) + ":" + String.format("%02d", m % 60); }
+
+    private static boolean hasText(String s) { return s != null && !s.isBlank(); }
 }
