@@ -1,4 +1,1 @@
-function onOpen(e) { Lib.onOpen(e); }
-function createMonth() { Lib.createMonth(); }
-function checkMonth() { Lib.checkMonth(); }
-function checkSetup() { Lib.checkSetup(); }
+// 勤怠メニューは出さない（月のシート作成・集計は「社員管理表」のメニューから行う）
