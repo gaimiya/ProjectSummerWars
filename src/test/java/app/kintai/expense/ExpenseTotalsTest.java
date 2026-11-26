@@ -1,3 +1,4 @@
+// 担当：山川さん（交通費・経費のテスト）。変更する前に expense/README.md を読み、担当外の人は担当者に相談する
 package app.kintai.expense;
 
 import org.junit.jupiter.api.Test;
