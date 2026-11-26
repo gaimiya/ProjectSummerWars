@@ -1,5 +1,6 @@
 package app.kintai.settings;
 
+import app.kintai.employee.EmployeeService;
 import app.kintai.expense.ExpenseTotals;
 import app.kintai.google.GoogleWorkspace;
 import app.kintai.common.Ids;
@@ -16,8 +17,19 @@ import java.util.*;
 public class SettingsController {
     private final AppSettings settings;
     private final GoogleWorkspace google;
+    private final EmployeeService employees;
 
-    public SettingsController(AppSettings settings, GoogleWorkspace google) { this.settings = settings; this.google = google; }
+    public SettingsController(AppSettings settings, GoogleWorkspace google, EmployeeService employees) {
+        this.settings = settings; this.google = google; this.employees = employees;
+    }
+
+    /** GAS 版の「社員管理表」から社員を取り込む（切り替え用） */
+    @PostMapping("/import")
+    public String importFromGas(@RequestParam String sheetUrl, RedirectAttributes ra) {
+        try { ra.addFlashAttribute("message", employees.importFromGas(sheetUrl)); }
+        catch (RuntimeException e) { ra.addFlashAttribute("error", "取り込めませんでした：" + e.getMessage()); }
+        return "redirect:/settings";
+    }
 
     @GetMapping
     public String show(Model model) {
