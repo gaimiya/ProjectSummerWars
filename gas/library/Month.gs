@@ -71,8 +71,8 @@ function generateMonthlyAttendance(ss, year, month) {
     var lastRow = sheet.getLastRow();
     var lastCol = sheet.getLastColumn();
 
-    // ② 残す数式を保存（F勤務時間・I欠勤日数・L〜O列と、43・44行目の合計）
-    var keepCols = [6, 9, 12, 13, 14, 15];
+    // ② 残す数式を保存（F勤務時間・L〜O列と、43・44行目の合計）
+    var keepCols = [6, 12, 13, 14, 15];
     var saved = [];
     keepCols.forEach(function (col) {
       sheet.getRange(11, col, 31, 1).getFormulas().forEach(function (r, i) {

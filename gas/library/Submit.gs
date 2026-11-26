@@ -1,74 +1,76 @@
 /**
  * Submit.gs
- * 開いている月のシートをチェック → 送信 → 結果を表示する。
+ * ① 入力チェック → ② 集計して確認画面 → ③「この内容で提出」で送信 → ④ 結果を表示
+ * 送信先は API_URL（社員管理表のウェブアプリ。将来は backend の提出API）
  */
 function submitMonth() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getActiveSheet();
-  var m = sheet.getName().match(MONTH_SHEET_PATTERN);
-  if (!m) {
-    showDialog_('提出できません', ['「2026年11月」のような月のシートを開いてから提出してください。'], true);
+  if (!MONTH_SHEET_PATTERN.test(sheet.getName())) {
+    showDialog_('提出できません', ['「2026年12月」のような月のシートを開いてから提出してください。'], true);
     return;
   }
-
-  // ① 入力チェック
   var result = validateSheet(sheet);
   if (result.errors.length) {
     showDialog_(result.errors.length + '件の入力エラーがあります', result.errors, true);
     return;
   }
+  var s = aggregateSheet(sheet);
+  var t = HtmlService.createTemplateFromFile('Confirm');
+  t.sheetName = sheet.getName();
+  t.name = String(sheet.getRange('G8').getValue() || '');
+  t.dept = String(sheet.getRange('G7').getValue() || '');
+  t.lines = summaryLines(s);
+  t.testMode = !getConfig().apiUrl;
+  SpreadsheetApp.getUi().showModalDialog(t.evaluate().setWidth(480).setHeight(560), sheet.getName() + '　提出内容の確認');
+}
 
-  // ② 送るデータ
+/** 確認画面の「この内容で提出」から呼ばれる（ひな型側のコード.gsに sendMonth を置く） */
+function sendMonth(sheetName) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  var m = sheet && sheetName.match(MONTH_SHEET_PATTERN);
+  if (!m) return { ok: false, messages: ['シートが見つかりません：' + sheetName] };
+
+  var result = validateSheet(sheet);           // 確認中に書き換えられていないか、もう一度
+  if (result.errors.length) return { ok: false, messages: result.errors };
+
   var body = JSON.stringify({
     spreadsheetId: ss.getId(),
-    sheetName: sheet.getName(),
+    sheetName: sheetName,
     targetMonth: m[1] + '-' + m[2],
+    employeeName: String(sheet.getRange('G8').getValue() || ''),
+    department: String(sheet.getRange('G7').getValue() || ''),
+    summary: aggregateSheet(sheet),
     rows: result.rows
   });
 
   var cfg = getConfig();
-  if (!cfg.apiUrl) {
-    // API がまだ無い間のテスト：送る内容を表示するだけ
-    showDialog_('テスト送信（API未設定）', ['送信内容：' + result.rows.length + '日分', body.slice(0, 1500)], false);
-    return;
-  }
+  if (!cfg.apiUrl) return { ok: true, test: true, messages: ['送信先（API_URL）が未設定のため、送信はしていません（テスト）。', '送る内容：' + body.length + '文字'] };
 
-  // ③ 署名を付けて送信
-  var timestamp = String(Math.floor(Date.now() / 1000));
-  var requestId = Utilities.getUuid();
-  var sig = Utilities.computeHmacSha256Signature(timestamp + '.' + body, cfg.apiKey)
+  var ts = String(Math.floor(Date.now() / 1000));
+  var sig = Utilities.computeHmacSha256Signature(ts + '.' + body, cfg.apiKey)
     .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+  var url = cfg.apiUrl + (cfg.apiUrl.indexOf('?') < 0 ? '?' : '&') + 'ts=' + ts + '&sig=' + sig + '&rid=' + Utilities.getUuid();
 
   var res;
   try {
-    res = UrlFetchApp.fetch(cfg.apiUrl, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: body,
-      headers: { 'X-Timestamp': timestamp, 'X-Signature': sig, 'X-Request-Id': requestId },
-      muteHttpExceptions: true
-    });
+    res = UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/json', payload: body, muteHttpExceptions: true, followRedirects: true });
   } catch (err) {
-    showDialog_('送信できませんでした', ['時間をおいて、もう一度押してください。', String(err)], true);
-    return;
+    return { ok: false, messages: ['送信できませんでした。時間をおいて、もう一度押してください。', String(err)] };
   }
-
-  // ④ 結果を表示
-  var code = res.getResponseCode();
   var json = {};
   try { json = JSON.parse(res.getContentText()); } catch (e) {}
+  if (!json.code) return { ok: false, messages: ['送信先から正しい返事がありませんでした（' + res.getResponseCode() + '）。', 'ウェブアプリのアクセス設定が「全員」になっているか、管理者に確認してください。'] };
+  var code = json.code;
 
   if (code === 200) {
     sheet.getRange('G2').setValue('提出：' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'M/d HH:mm'));
-    showDialog_('提出しました', ['提出を受け付けました。内容に問題があれば山本さんから連絡があります。'], false, json.submissionId || '-');
-  } else if (code === 422) {
-    var list = (json.errors || []).map(function (e) { return e.message || JSON.stringify(e); });
-    showDialog_('入力内容にエラーがあります', list.length ? list : ['内容を確認してください。'], true);
-  } else if (code === 409) {
-    showDialog_('提出できません', ['この月は確定済みです。山本さんへ連絡してください。'], true);
-  } else {
-    showDialog_('提出できませんでした（' + code + '）', ['山本さんへ連絡してください。'], true);
+    return { ok: true, receiptNo: json.receiptNo || '-', messages: [json.message || '提出を受け付けました。'] };
   }
+  if (code === 409) return { ok: false, messages: [json.message || 'この月は確定済みです。山本さんへ連絡してください。'] };
+  if (code === 422 || code === 403) return { ok: false, messages: (json.errors && json.errors.length) ? json.errors : [json.message || '内容を確認してください。'] };
+  return { ok: false, messages: ['提出できませんでした（' + code + '）。山本さんへ連絡してください。'] };
 }
 
 function showDialog_(title, messages, isError, receiptNo) {

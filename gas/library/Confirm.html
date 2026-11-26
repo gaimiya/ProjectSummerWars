@@ -1,0 +1,60 @@
+<!-- Confirm.html：提出前の確認（集計結果）→ 提出 → 結果 -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font-family: sans-serif; font-size: 13px; margin: 12px; color: #1f2430; }
+      .who { color: #5a6170; margin-bottom: 10px; }
+      .warn { background: #fff4d6; border: 1px solid #e8cf8a; color: #6b4e00; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
+      table { width: 100%; border-collapse: collapse; }
+      td { padding: 7px 8px; border-bottom: 1px solid #e6e9ee; }
+      td.v { text-align: right; font-weight: bold; }
+      .receipt { background: #e7f3ec; border: 1px solid #9fccb0; border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+      .receipt .no { font-size: 22px; font-weight: bold; color: #1e5a36; margin-top: 4px; }
+      .err { color: #b00020; }
+      ul { padding-left: 18px; }
+      .row { display: flex; gap: 10px; margin-top: 16px; }
+      button { padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+      .go { background: #1f5fc4; color: #fff; border: 0; }
+      .go:disabled { background: #8fa9d6; cursor: wait; }
+      .sub { background: #fff; border: 1px solid #c9cfd8; }
+      .hint { font-size: 12px; color: #5a6170; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div id="confirm">
+      <div class="who"><?= dept ?>　<b><?= name || '（氏名が未入力）' ?></b>　の <?= sheetName ?> 分</div>
+      <? if (!name) { ?><div class="warn">G8 の氏名が空です。入力してから提出してください。</div><? } ?>
+      <? if (testMode) { ?><div class="warn">送信先が未設定のため、テスト（送信しない）になります。</div><? } ?>
+      <table>
+        <? for (var i = 0; i < lines.length; i++) { ?>
+          <tr><td><?= lines[i][0] ?></td><td class="v"><?= lines[i][1] ?></td></tr>
+        <? } ?>
+      </table>
+      <div class="hint">この数字を社員情報と合わせて、給与計算のために社労士へ渡します。</div>
+      <div class="row">
+        <button class="go" id="go" onclick="send()" <?= name ? '' : 'disabled' ?>>この内容で提出</button>
+        <button class="sub" onclick="google.script.host.close()">やめる</button>
+      </div>
+    </div>
+    <div id="result" style="display:none"></div>
+    <script>
+      var SHEET = <?!= JSON.stringify(sheetName) ?>;
+      function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+      function send() {
+        var b = document.getElementById('go'); b.disabled = true; b.textContent = '送信中…';
+        google.script.run.withSuccessHandler(done).withFailureHandler(function (e) { done({ ok: false, messages: [String(e && e.message || e)] }); }).sendMonth(SHEET);
+      }
+      function done(r) {
+        var h = '';
+        if (r.receiptNo) h += '<div class="receipt"><div>受付番号（問い合わせのときに伝えてください）</div><div class="no">' + esc(r.receiptNo) + '</div></div>';
+        h += '<ul class="' + (r.ok ? '' : 'err') + '">' + r.messages.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>';
+        if (!r.ok) h += '<div class="hint">赤くなったセルや内容を直してから、もう一度「勤怠 → 開いている月を提出」を押してください。</div>';
+        h += '<div class="row"><button class="go" onclick="google.script.host.close()">閉じる</button></div>';
+        document.getElementById('confirm').style.display = 'none';
+        var el = document.getElementById('result'); el.innerHTML = h; el.style.display = 'block';
+      }
+    </script>
+  </body>
+</html>
