@@ -25,6 +25,11 @@ function onOpen() {
   SpreadsheetApp.getUi().createMenu('社員管理')
     .addItem('（初回）表を準備する', 'setup')
     .addItem('入社日を迎えた社員に共有する（手動実行）', 'shareDueSheets')
+    .addSeparator()
+    .addItem('月次集計を作る（全員の勤怠シートを読む）', 'collectMonth')
+    .addItem('月次集計を社労士へ送る（CSV）', 'sendMonthlyCsv')
+    .addSeparator()
+    .addItem('交通費・経費フォームを作る／URLを見る', 'setupForms')
     .addToUi();
 }
 
@@ -33,13 +38,15 @@ function setup() {
   var ss = SpreadsheetApp.getActive();
   ss.setSpreadsheetTimeZone('Asia/Tokyo');
   var e = sheet_(EMP, COLS), h = sheet_(HIS, HCOLS);
+  monthlySheet_();
   e.getRange('G:G').setNumberFormat('yyyy/m/d');
   h.getRange('D:E').setNumberFormat('yyyy/m/d');
   // 毎朝7時に「入社日を迎えた社員への共有」を動かす
   var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'shareDueSheets'; });
   if (!has) ScriptApp.newTrigger('shareDueSheets').timeBased().everyDays(1).atHour(7).create();
   rootFolder_();
-  try { SpreadsheetApp.getUi().alert('準備できました。デプロイ → 新しいデプロイ → ウェブアプリ で画面を開けます。'); } catch (x) {}
+  // エディタから実行したときに確認ダイアログで止まらないよう、結果はログに出す
+  console.log('準備できました：社員一覧・参画履歴シート、毎朝7時の共有、保存先フォルダ ' + rootFolder_().getUrl());
 }
 
 function sheet_(name, cols) {
