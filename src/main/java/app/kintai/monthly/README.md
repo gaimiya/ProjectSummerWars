@@ -20,3 +20,5 @@
 1. db/migration に V4__… を足して monthly_record に列を足す
 2. MonthlyRecord に項目、MonthlyService.fill に値を入れる処理を足す
 3. MonthlyColumns の HEADER と row に同じ順番で足す
+
+> **担当へのお願い（2026-11-26）**：【山川さん担当】月次集計：社労士が読めるCSVの形を確認し、MonthlyColumnsを合わせてください
