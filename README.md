@@ -35,7 +35,6 @@ gradle test               # テスト（集計ルール・画面の流れ）
 ## 本番の設定（環境変数）
 | 名前 | 中身 |
 |---|---|
-| SPRING_PROFILES_ACTIVE | prod（PostgreSQL を使う。docker compose up -d で開発用DBも立てられる） |
 | DB_URL / DB_USER / DB_PASSWORD | PostgreSQL の接続先 |
 | ADMIN_USER / ADMIN_PASSWORD | ログイン（必ず変える） |
 | GOOGLE_CREDENTIALS | サービスアカウントの鍵ファイル（JSON）の場所。鍵は Git に入れない |
@@ -58,3 +57,5 @@ gradle test               # テスト（集計ルール・画面の流れ）
 - **分担と Git の使い方：docs/分担.md**（まずここを読む）
 - 各フォルダの README.md に、そのフォルダの担当・中身・やることがある
 - GAS 版からの切り替え：docs/GAS停止手順.md
+
+> **全員へ（2026-11-26）**：Java版はまだ構築中です。各フォルダの最新コミットメッセージに、担当者へのお願いを書いています。
