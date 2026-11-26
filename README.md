@@ -53,3 +53,8 @@ gradle test               # テスト（集計ルール・画面の流れ）
 3. 月次集計の列を足すときは、monthly/MonthlyColumns・MonthlyRecord・db/migration を同じ順番で足す
 
 詳しい設計は docs/設計.md。
+
+## チームで進めるとき
+- **分担と Git の使い方：docs/分担.md**（まずここを読む）
+- 各フォルダの README.md に、そのフォルダの担当・中身・やることがある
+- GAS 版からの切り替え：docs/GAS停止手順.md
