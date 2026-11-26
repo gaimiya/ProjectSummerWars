@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('ログイン')}"></head>
+<body class="center">
+<form class="card pad login" th:action="@{/login}" method="post">
+  <h1>勤怠・給与集計</h1>
+  <div class="err" th:if="${param.error}">ユーザー名かパスワードが違います。</div>
+  <div class="toast" th:if="${param.logout}">ログアウトしました。</div>
+  <label>ユーザー名<input name="username" autofocus required></label>
+  <label>パスワード<input name="password" type="password" required></label>
+  <button class="btn">ログイン</button>
+</form>
+</body>
+</html>

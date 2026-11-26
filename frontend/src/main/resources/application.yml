@@ -1,0 +1,37 @@
+# 何も設定しなければ、H2（ファイルのDB）と仮の Google（FakeGoogleWorkspace）で動く。
+# 本番は SPRING_PROFILES_ACTIVE=prod で PostgreSQL を使い、GOOGLE_CREDENTIALS に鍵ファイルの場所を入れる。
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/kintai;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate.ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  thymeleaf:
+    cache: false
+  # メール送信（社労士へCSV）を使うときだけ、環境変数 SPRING_MAIL_HOST・SPRING_MAIL_USERNAME・SPRING_MAIL_PASSWORD を入れる
+  mail:
+    port: 587
+    properties.mail.smtp.auth: true
+    properties.mail.smtp.starttls.enable: true
+app:
+  # 管理者（山本さん）のログイン。本番は必ず環境変数で変える
+  admin-user: ${ADMIN_USER:yamamoto}
+  admin-password: ${ADMIN_PASSWORD:change-me}
+  google:
+    # サービスアカウントの鍵ファイル（JSON）の場所。空なら仮データで動く。鍵は Git に入れない
+    credentials: ${GOOGLE_CREDENTIALS:}
+server:
+  port: ${PORT:8080}
+---
+spring:
+  config.activate.on-profile: prod
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kintai}
+    username: ${DB_USER:kintai}
+    password: ${DB_PASSWORD:kintai_dev}
+  thymeleaf:
+    cache: true
