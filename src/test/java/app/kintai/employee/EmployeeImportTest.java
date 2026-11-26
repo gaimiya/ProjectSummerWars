@@ -1,3 +1,4 @@
+// 担当：宮谷さん（社員管理のテスト）。変更する前に employee/README.md を読み、担当外の人は担当者に相談する
 package app.kintai.employee;
 
 import org.junit.jupiter.api.Test;
