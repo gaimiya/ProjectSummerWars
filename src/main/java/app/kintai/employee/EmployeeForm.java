@@ -1,3 +1,4 @@
+// 担当：宮谷さん（社員管理）。変更する前に同じフォルダか担当フォルダの README.md を読み、担当外の人は担当者に相談する
 package app.kintai.employee;
 
 import jakarta.validation.Valid;
