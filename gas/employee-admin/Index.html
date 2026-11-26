@@ -10,7 +10,8 @@ body{margin:0;background:#F4F6F9;font-family:'Noto Sans JP',sans-serif;color:#1F
 .app{display:flex;flex-wrap:wrap;min-height:100vh}
 nav{flex:1 1 200px;max-width:220px;background:#1F2A3D;color:#fff;padding:20px 12px}
 nav .t{font-weight:700;font-size:15px;padding:4px 10px 18px}
-nav .i{border-radius:6px;padding:11px 12px;background:#33415C}
+nav .i{border-radius:6px;padding:11px 12px;cursor:pointer;margin-bottom:4px}
+nav .i.on{background:#33415C}
 main{flex:999 1 560px;min-width:0;padding:28px 32px}
 h1{margin:0;font-size:22px}
 .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
@@ -53,7 +54,7 @@ th{background:#F7F8FA;color:#4A5160;font-weight:500}
 </head>
 <body>
 <div class="app">
-  <nav><div class="t">勤怠・給与集計</div><div class="i">社員管理</div></nav>
+  <nav><div class="t">勤怠・給与集計</div><div class="i on" id="nav_emp" onclick="go('emp')">社員管理</div><div class="i" id="nav_forms" onclick="go('forms')">フォーム設定</div></nav>
   <main>
     <div id="msg"></div>
     <div id="view"><p class="muted">読み込み中…</p></div>
@@ -72,6 +73,7 @@ function call(fn) {
       else if (fn === 'getEmployee') ok(demo.filter(function (e) { return e.no === args[0]; })[0]);
       else if (fn === 'saveEmployee') { if (args[1]) demo.push(Object.assign({shareState:'入社日に共有予定',history:[]}, args[0])); ok({ok:true,message:'保存しました（仮データ）'}); }
       else if (fn === 'deleteEmployee') { demo = demo.filter(function (e) { return e.no !== args[0]; }); ok({ok:true,message:'削除しました（仮データ）'}); }
+      else if (fn === 'getFormSettings') ok([{key:'TRANSPORT',title:'交通費申請',editUrl:'',publishedUrl:'',formTitle:''},{key:'EXPENSE',title:'経費申請',editUrl:'',publishedUrl:'',formTitle:''}]);
       else ok({ok:true,message:'完了（仮データ）'});
     }, 200);
   });
@@ -120,6 +122,10 @@ function fld(label, key, v, opt) {
   else inner = '<input id="f_' + key + '" type="' + (opt.type || 'text') + '" value="' + esc(v) + '" placeholder="' + esc(opt.ph || '') + '"' + (opt.ro ? ' readonly' : '') + '>';
   return '<label>' + label + req + inner + (opt.note ? '<small>' + opt.note + '</small>' : '') + '</label>';
 }
+function sheetFields(e, isNew) {
+  return fld('勤怠シートのURL', 'sheetUrl', e.sheetUrl, { ph: 'https://docs.google.com/spreadsheets/d/…', note: isNew ? '空なら、ひな型から新しく作ります。既存のシートを使うときはURLを貼ってください' : '既存のスプレッドシートに差し替えるときは、そのURLを貼ります' }) +
+    fld('個人フォルダのURL（任意）', 'folderUrl', e.folderUrl, { ph: 'https://drive.google.com/drive/folders/…', note: isNew ? '既存のシートを使い、フォルダもあるときだけ' : '' });
+}
 function val(key) { var el = $('f_' + key); return el ? el.value : undefined; }
 var TYPES = ['正社員', '契約社員', 'パート・アルバイト'], PAYS = ['月給', '日給', '時給'];
 var HOUSING_NOTE = '在籍7か月以上の社員は 10,000 円';
@@ -140,7 +146,7 @@ function allowFields(e) {
 }
 function collect(base) {
   var o = Object.assign({}, base);
-  ['no', 'name', 'kana', 'mail', 'dept', 'type', 'joined', 'status', 'payType', 'base', 'stdTime', 'commute', 'housing', 'fixed', 'fixedName'].forEach(function (k) {
+  ['no', 'name', 'kana', 'mail', 'dept', 'type', 'joined', 'status', 'payType', 'base', 'stdTime', 'commute', 'housing', 'fixed', 'fixedName', 'sheetUrl', 'folderUrl'].forEach(function (k) {
     var v = val(k); if (v !== undefined) o[k] = v;
   });
   var hs = document.querySelectorAll('.hrow');
@@ -161,6 +167,7 @@ function showNew() {
   var h = '<button class="link" onclick="showList()">← 社員一覧へ戻る</button><h1 style="margin-bottom:6px">社員を登録</h1>' +
     '<p class="muted" style="margin:0 0 18px">登録すると勤怠シートと個人フォルダを作成し、入社日の朝に本人へ共有します。<span class="req">*</span> は必須です。</p>' +
     '<div class="card pad grid">' + basicFields({ type: '正社員' }, true) + payFields({ payType: '月給' }) + allowFields({}) + '</div>' +
+    '<h2 style="font-size:16px;margin:22px 0 10px">勤怠シート</h2><div class="card pad grid">' + sheetFields({}, true) + '</div>' +
     '<div class="row" style="margin-top:18px"><button class="btn" id="go" onclick="register()">登録して勤怠シートを作成</button><button class="sub" onclick="showList()">キャンセル</button></div>';
   $('view').innerHTML = h; window.scrollTo(0, 0);
 }
@@ -195,10 +202,11 @@ function showDetail() {
   h += pane('proj', '<div class="tw"><table style="min-width:600px"><thead><tr><th>案件</th><th>インセンティブ月額（円）</th><th>参画開始</th><th>参画終了</th><th></th></tr></thead><tbody id="hbody">' +
     (e.history || []).map(hrow).join('') + '</tbody></table></div><button class="out" style="margin-top:14px" onclick="addH()">＋ 参画を追加</button>');
   h += pane('sheet', '<div style="display:flex;flex-direction:column;gap:14px">' +
-    '<div><span class="muted">勤怠シート：</span>' + (e.sheetUrl ? '<a href="' + esc(e.sheetUrl) + '" target="_blank">勤怠表_' + esc(e.no) + '_' + esc(e.name) + '</a>' : '未作成') + '</div>' +
-    '<div><span class="muted">個人フォルダ：</span>' + (e.folderUrl ? '<a href="' + esc(e.folderUrl) + '" target="_blank">' + esc(e.no) + '_' + esc(e.name) + '</a>' : '未作成') + '</div>' +
+    '<div class="grid">' + sheetFields(e, false) + '</div>' +
+    '<div class="row">' + (e.sheetUrl ? '<a href="' + esc(e.sheetUrl) + '" target="_blank">勤怠シートを開く</a>' : '') + (e.folderUrl ? '<a href="' + esc(e.folderUrl) + '" target="_blank">個人フォルダを開く</a>' : '') + '</div>' +
     '<div><span class="muted">本人への共有：</span>' + shareTag(e.shareState) + '</div>' +
-    '<div><button class="sub" onclick="recreate()">勤怠シートを作り直す</button></div></div>');
+    '<p class="muted" style="margin:0">URLを書き換えて「変更を保存」を押すと、既存の別のシートに差し替えられます。</p>' +
+    '<div><button class="sub" onclick="recreate()">ひな型から新しく作り直す</button></div></div>');
   $('view').innerHTML = h;
 }
 function pane(k, inner) { return '<div class="card pad' + (S.tab === k ? '' : ' hide') + '" data-pane="' + k + '">' + inner + '</div>'; }
@@ -217,6 +225,28 @@ function save() {
 function del() { call('deleteEmployee', S.cur.no).then(function (r) { S.cur = null; loadList(r.message); }).catch(fail); }
 function recreate() { msg('作り直しています…'); call('recreateSheet', S.cur.no).then(function (r) { msg(r.message); openDetailKeep(); }).catch(fail); }
 function openDetailKeep() { call('getEmployee', S.cur.no).then(function (e) { S.cur = e; showDetail(); switchTab('sheet'); }); }
+
+// ---- フォーム設定 ----
+function go(p) {
+  $('nav_emp').classList.toggle('on', p === 'emp'); $('nav_forms').classList.toggle('on', p === 'forms');
+  msg(''); if (p === 'emp') loadList(); else showForms();
+}
+function showForms() {
+  $('view').innerHTML = '<p class="muted">読み込み中…</p>';
+  call('getFormSettings').then(function (list) {
+    var h = '<h1 style="margin-bottom:6px">フォーム設定</h1><p class="muted" style="margin:0 0 18px">交通費・経費の申請フォームを登録します。既存のGoogleフォームを使うときは、編集画面のURL（…/edit）を貼って「登録」。空のまま「登録」を押すと新しく作ります。<br>回答は社員管理表の同じ名前のシートに入り、「承認」にチェックしたものだけ月次集計に入ります。</p>';
+    list.forEach(function (f) {
+      h += '<div class="card pad" style="margin-bottom:16px"><div style="font-weight:700;margin-bottom:10px">' + esc(f.title) + '</div>' +
+        (f.editUrl ? '<div class="row mb"><span class="tag ok">登録済み</span><span>' + esc(f.formTitle) + '</span><a href="' + esc(f.editUrl) + '" target="_blank">編集</a><a href="' + esc(f.publishedUrl) + '" target="_blank">社員に配るURL</a></div>' : '<div class="mb"><span class="tag gray">未登録</span></div>') +
+        '<div class="row"><div style="flex:1 1 360px"><input id="fu_' + f.key + '" placeholder="既存フォームのURL（空なら新しく作る）"></div><button class="btn" id="fb_' + f.key + '" onclick="saveForm(\'' + f.key + '\')">' + (f.editUrl ? '差し替える' : '登録') + '</button></div></div>';
+    });
+    $('view').innerHTML = h;
+  }).catch(fail);
+}
+function saveForm(key) {
+  var b = $('fb_' + key); b.disabled = true; b.textContent = '登録中…';
+  call('saveFormSetting', key, $('fu_' + key).value).then(function (r) { showForms(); msg(r.message, !r.ok); }).catch(function (e) { b.disabled = false; fail(e); });
+}
 
 loadList();
 </script>

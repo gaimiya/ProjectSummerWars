@@ -37,7 +37,7 @@ function collectAll_(ym) {
     emps.forEach(function (emp) {
       try {
         var ss = SpreadsheetApp.openById(idOf_(emp.sheetUrl));
-        var sh = ss.getSheetByName(sheetName);
+        var sh = ss.getSheetByName(sheetName) || ss.getSheetByName(y + '年' + ('0' + m).slice(-2) + '月');
         if (!sh) { ng.push(emp.name + '：「' + sheetName + '」シートがありません'); return; }
         var v = validateMonth_(sh);
         if (v.length) { ng.push(emp.name + '：入力エラー ' + v.length + '件（' + v.slice(0, 3).join(' / ') + (v.length > 3 ? ' …' : '') + '）'); return; }
@@ -126,4 +126,56 @@ function aggregateMonth_(sheet) {
 function tMin_(s) {
   var m = String(s || '').trim().match(/^(\d{1,2}):(\d{2})/);
   return m ? (Number(m[1]) * 60 + Number(m[2])) % 1440 : null;
+}
+
+/* ---------- 月のシートを全員分つくる（ひな型の「勤怠」メニューの代わり） ---------- */
+function createMonthAll() {
+  var ui = SpreadsheetApp.getUi();
+  var n = new Date(), def = Utilities.formatDate(new Date(n.getFullYear(), n.getMonth() + 1, 1), 'Asia/Tokyo', 'yyyy-MM');
+  var res = ui.prompt('全員の勤怠シートに月のシートを作る', '作る月を入力してください（例：' + def + '）\n空のままOKで ' + def + ' を作ります。', ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+  var ym = normYm_(res.getResponseText() || def);
+  if (!ym) { ui.alert('「2026-12」の形で入力してください。'); return; }
+  var y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
+  var made = [], skip = [], ng = [];
+  var emps = rows_().filter(function (e) { return !e.deletedAt && e.sheetUrl; });
+  emps.push({ name: 'ひな型テスト', sheetUrl: 'https://docs.google.com/spreadsheets/d/' + TEMPLATE_ID }); // 試験中
+  emps.forEach(function (e) {
+    try {
+      var r = makeMonthSheet_(SpreadsheetApp.openById(idOf_(e.sheetUrl)), y, m);
+      (r ? made : skip).push(e.name);
+    } catch (err) { ng.push(e.name + '：' + err.message); }
+  });
+  var msg = [ym + ' のシート', '作成：' + made.length + '人' + (made.length ? '（' + made.join('、') + '）' : ''),
+    'すでにあった：' + skip.length + '人' + (skip.length ? '（' + skip.join('、') + '）' : '')];
+  if (ng.length) msg.push('', '作れなかった：' + ng.length + '人', ng.join('\n'));
+  ui.alert('月のシート', msg.join('\n'), ui.ButtonSet.OK);
+}
+
+/** 「テンプレ」シートを複製して「YYYY年MM月」を作る。すでにあれば false */
+function makeMonthSheet_(ss, year, month) {
+  var name = year + '年' + ('0' + month).slice(-2) + '月';
+  if (ss.getSheetByName(name) || ss.getSheetByName(year + '年' + month + '月')) return false;
+  var template = ss.getSheetByName('テンプレ');
+  if (!template) throw new Error('「テンプレ」シートがありません');
+  var sheet = template.copyTo(ss).setName(name);
+  try {
+    sheet.getRange('G6').setFormula('=DATE(' + year + ',' + month + ',1)');
+    SpreadsheetApp.flush();
+    var g6 = sheet.getRange('G6').getDisplayValue();
+    if (g6.indexOf(year + '年' + month + '月') < 0) throw new Error('年月がずれています（G6=' + g6 + '）。シートのタイムゾーンを東京にしてください');
+    var lastRow = sheet.getLastRow(), lastCol = sheet.getLastColumn(), saved = [];
+    [6, 12, 13, 14, 15].forEach(function (col) {
+      sheet.getRange(11, col, 31, 1).getFormulas().forEach(function (r, i) { if (r[0]) saved.push([i + 11, col, r[0]]); });
+    });
+    [43, 44].forEach(function (row) {
+      if (lastRow < row) return;
+      sheet.getRange(row, 1, 1, lastCol).getFormulas()[0].forEach(function (f, i) { if (f) saved.push([row, i + 1, f]); });
+    });
+    var all = sheet.getRange(1, 1, lastRow, lastCol);
+    all.copyTo(all, SpreadsheetApp.CopyPasteType.PASTE_VALUES, false);
+    saved.forEach(function (x) { sheet.getRange(x[0], x[1]).setFormula(x[2]); });
+    ss.setActiveSheet(sheet); ss.moveActiveSheet(ss.getNumSheets());
+    return true;
+  } catch (err) { ss.deleteSheet(sheet); throw err; }
 }

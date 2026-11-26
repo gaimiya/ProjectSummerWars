@@ -26,10 +26,11 @@ function onOpen() {
     .addItem('（初回）表を準備する', 'setup')
     .addItem('入社日を迎えた社員に共有する（手動実行）', 'shareDueSheets')
     .addSeparator()
+    .addItem('全員の勤怠シートに月のシートを作る', 'createMonthAll')
     .addItem('月次集計を作る（全員の勤怠シートを読む）', 'collectMonth')
     .addItem('月次集計を社労士へ送る（CSV）', 'sendMonthlyCsv')
     .addSeparator()
-    .addItem('交通費・経費フォームを作る／URLを見る', 'setupForms')
+    .addItem('交通費・経費フォームのURLを見る（なければ作る）', 'setupForms')
     .addToUi();
 }
 
@@ -76,23 +77,38 @@ function saveEmployee(input, isNew) {
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var errs = validate_(input, isNew);
+    // 既存の勤怠シート・フォルダを使う場合は、開けるかを確かめる
+    var su = String(input.sheetUrl || '').trim(), fu = String(input.folderUrl || '').trim();
+    if (su) { try { SpreadsheetApp.openById(idOf_(su)); } catch (x) { errs.push('勤怠シートを開けません（URLと、このアカウントに編集権限があるかを確認してください）'); } }
+    if (fu) { try { DriveApp.getFolderById(idOf_(fu)); } catch (x) { errs.push('個人フォルダを開けません（URLと権限を確認してください）'); } }
     if (errs.length) return { ok: false, errors: errs };
     var sh = sheet_(EMP, COLS), now = new Date();
     var rec = isNew ? {} : find_(input.no);
     if (!isNew && !rec) return { ok: false, errors: ['社員が見つかりません'] };
+    var oldSheet = rec.sheetUrl || '';
     ['no', 'name', 'kana', 'mail', 'dept', 'type', 'status', 'payType', 'fixedName'].forEach(function (k) { rec[k] = (input[k] || '').toString().trim(); });
     ['base', 'commute', 'housing', 'fixed'].forEach(function (k) { rec[k] = num_(input[k]); });
     rec.stdTime = input.stdTime || '8:00';
     rec.joined = toDate_(input.joined);
     rec.updatedAt = now;
-    if (isNew) { rec.status = rec.status || '在籍'; rec.createdAt = now; rec.shareState = '未作成'; }
+    if (input.sheetUrl !== undefined) rec.sheetUrl = su;
+    if (input.folderUrl !== undefined) rec.folderUrl = fu;
+    if (isNew) { rec.status = rec.status || '在籍'; rec.createdAt = now; rec.shareState = su ? '入社日に共有予定' : '未作成'; }
     var row = KEYS.map(function (k) { return rec[k] === undefined ? '' : rec[k]; });
     if (isNew) sh.appendRow(row); else sh.getRange(rec._row, 1, 1, KEYS.length).setValues([row]);
     if (input.history) saveHistory_(rec.no, input.history);
     var msg = rec.name + ' さんを保存しました。';
-    if (isNew) {
+    if (isNew && su) {
+      if (rec.joined && rec.joined <= now) shareOne_(find_(rec.no));
+      msg = rec.name + ' さんを登録しました。既存の勤怠シートを使います（入社日の朝7時ごろ本人へ共有します）。';
+    } else if (isNew) {
       try { createSheetFor_(rec.no); msg = rec.name + ' さんを登録しました。勤怠シートと個人フォルダを作成しました（入社日の朝7時ごろ本人へ共有します）。'; }
       catch (x) { msg = rec.name + ' さんを登録しました。ただし勤怠シートの作成に失敗しました：' + x.message; }
+    } else if (su && su !== oldSheet) {
+      // 勤怠シートを差し替えた：すでに共有済みなら新しいシートも共有する
+      if (rec.shareState === '共有済み') shareOne_(find_(rec.no));
+      else if (rec.shareState === '未作成' || rec.shareState === '共有停止') sh.getRange(rec._row, KEYS.indexOf('shareState') + 1).setValue('入社日に共有予定');
+      msg = rec.name + ' さんを保存しました。勤怠シートを差し替えました。';
     }
     return { ok: true, message: msg, no: rec.no };
   } finally { lock.releaseLock(); }
@@ -156,7 +172,7 @@ function shareDueSheets() {
 function shareOne_(r) {
   if (!r.mail || !r.sheetUrl) return;
   DriveApp.getFileById(idOf_(r.sheetUrl)).addEditor(r.mail);
-  DriveApp.getFolderById(idOf_(r.folderUrl)).addViewer(r.mail);
+  if (r.folderUrl) DriveApp.getFolderById(idOf_(r.folderUrl)).addViewer(r.mail);
   sheet_(EMP, COLS).getRange(r._row, KEYS.indexOf('shareState') + 1).setValue('共有済み');
 }
 
