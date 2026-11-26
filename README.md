@@ -2,60 +2,111 @@
 
 社員管理・月次集計・交通費/経費フォームの取り込み・社労士へのCSV送付を、1つの Java（Spring Boot）の画面で行う。
 給与計算そのものは社労士が行う。このシステムは、社労士に渡すデータ（1人×1か月）を正しく集めてまとめる。
+**Java 版はまだ構築中。** GAS 版は 2026-11-26 に停止済み（トリガー削除・デプロイのアーカイブ・メニュー非表示。社員管理表は「旧_社員管理表」として残してある）。
 
-## 画面
-| 画面 | できること |
-|---|---|
-| 社員管理 | 社員の登録・変更・削除、案件・参画履歴、勤怠シート（新しく作る／既存のシートを登録・差し替え） |
-| 月次集計 | ① 全員の勤怠シートに月のシートを作る → ② 集計 → ③ CSV ダウンロード・社労士へメール → ④ 確定 |
-| 設定 | 勤怠表のひな型、社員フォルダの場所、交通費・経費フォーム（既存のフォームも登録できる）、社労士のメール |
+## 分担（だれが・何を）
+| 人 | 担当 | 担当フォルダ・ファイル | まずやること |
+|---|---|---|---|
+| 指輪 | 画面・設定・全体のまとめ | `src/main/resources/templates/`、`src/main/resources/static/`、`src/main/java/app/kintai/settings/`、`config/HomeController.java`、`src/test/java/app/kintai/ScreensTest.java` | 山本さんに画面を触ってもらい、使いにくいところを直す |
+| 横田 | 勤怠シートの読み取り・**集計ルール** | `src/main/java/app/kintai/attendance/`、`aggregate/`、それぞれのテスト | 社労士に集計ルールを確認し、テスト→AggregationRules の順で直す |
+| 山川 | 月次集計・交通費経費・ログイン・DB | `src/main/java/app/kintai/monthly/`、`expense/`、`config/SecurityConfig.java`、`src/main/resources/db/migration/`、それぞれのテスト | 社労士が読める CSV の形を確認し、MonthlyColumns を合わせる |
+| 宮谷 | 社員管理・Google 連携 | `src/main/java/app/kintai/employee/`、`google/`、そのテスト | サービスアカウントを作り、本物の Google で登録〜共有を確かめる |
+| 全員 | 共通部分 | `common/`、`KintaiApplication.java`、`application.yml`、`build.gradle` など | 変えるときはチームに相談 |
 
-## フォルダ（src/main/java/app/kintai）
-| パッケージ | 中身 | 主に触る人 |
-|---|---|---|
-| employee | 社員の登録・変更・削除、勤怠シートの作成・共有（毎朝7時に入社日の人へ共有） | 宮谷 |
-| attendance | 勤怠シートの読み取りと入力チェック、月のシート作成 | 横田 |
-| **aggregate** | **集計（計算）ルール。残業・深夜・休日などの出し方は AggregationRules だけを直す** | **横田** |
-| expense | 交通費・経費フォームの回答シートから、承認済みの金額を合計 | 山川 |
-| monthly | 月次集計の保存・画面・CSV・社労士へのメール・確定 | 山川 |
-| google | Google（スプレッドシート・ドライブ）を触る窓口。鍵がないときは仮データ | 宮谷 |
-| settings | 画面「設定」の値（URL やメールはコードに書かず、ここに保存） | 指輪 |
-| config | ログイン、トップ画面 | 指輪 |
+**自分の担当外のファイルは変更しない。** 変えてほしいときは担当者に伝える（Issue か Pull Request に名前を書く）。
+各フォルダの README.md に「担当内容」と「AIへの指示プロンプト（担当外を変更しない指示入り）」がある。AI に頼むときはそれをコピーして使う。
 
-画面（HTML）は src/main/resources/templates、見た目は static/css/app.css（担当：指輪）。
-DB の表は src/main/resources/db/migration（Flyway。表を変えるときは V4__… を足す。既存のファイルは直さない）。
+## ファイルの場所（細かく）
+```
+ProjectSummerWars/
+├─ README.md ・・・・・・・・・・ このファイル（全員）
+├─ build.gradle / settings.gradle ・ ビルド設定（全員・変えるときは相談）
+├─ .gitignore ・・・・・・・・・・ Git に入れないファイル（鍵・.env）
+├─ .devcontainer/devcontainer.json ・ Codespaces の開発環境
+├─ .github/workflows/build.yml ・・ push するとビルドとテストが自動で動く
+└─ src/
+   ├─ main/java/app/kintai/
+   │  ├─ KintaiApplication.java ・・ 起動クラス（全員・触らない）
+   │  ├─ aggregate/ ・・・・・・・・ 【横田】集計ルール
+   │  │   ├─ AggregationRules.java ・ 残業・深夜・休日などの計算ルール
+   │  │   └─ MonthlySummary.java ・・ 計算の結果（分）
+   │  ├─ attendance/ ・・・・・・・ 【横田】勤怠シートの読み取り
+   │  │   ├─ AttendanceReader.java ・ 勤怠シートを読む
+   │  │   ├─ MonthSheetParser.java ・ 日ごとの勤怠にする・入力チェック
+   │  │   ├─ DayRecord.java / MonthSheet.java ・ 1日分・1か月分
+   │  │   └─ MonthSheetService.java ・ 全員の勤怠シートに月のシートを作る
+   │  ├─ employee/ ・・・・・・・・ 【宮谷】社員管理
+   │  │   ├─ Employee.java / ProjectAssignment.java ・ 社員・案件
+   │  │   ├─ EmployeeRepository.java ・ 社員の検索
+   │  │   ├─ EmployeeForm.java ・・・ 画面の入力とチェック
+   │  │   ├─ EmployeeService.java ・ 登録・変更・削除・勤怠シート作成・共有
+   │  │   ├─ EmployeeController.java ・ 画面「社員管理」(/employees)
+   │  │   └─ EmployeeImport.java ・・ GAS版社員管理表の読み込み
+   │  ├─ google/ ・・・・・・・・・ 【宮谷】Google の窓口
+   │  │   ├─ GoogleWorkspace.java ・ できること一覧
+   │  │   ├─ GoogleRestWorkspace.java ・ 本物（Sheets/Drive API）
+   │  │   ├─ FakeGoogleWorkspace.java ・ 仮データ
+   │  │   └─ GoogleConfig.java ・・・ 本物か仮かの切り替え
+   │  ├─ monthly/ ・・・・・・・・ 【山川】月次集計・社労士への送付
+   │  │   ├─ MonthlyService.java ・・ 集計の流れ・確定・CSV・メール
+   │  │   ├─ MonthlyController.java ・ 画面「月次集計」(/monthly)
+   │  │   ├─ MonthlyRecord.java / MonthlyRecordRepository.java ・ 月次集計の表
+   │  │   ├─ MonthlyColumns.java ・・ 画面とCSVの列
+   │  │   └─ CsvExporter.java ・・・ CSV にする
+   │  ├─ expense/ ・・・・・・・・ 【山川】交通費・経費
+   │  │   ├─ ExpenseTotals.java ・・ 承認済みの金額を合計
+   │  │   └─ ExpenseService.java ・・ 回答シートを読む
+   │  ├─ config/
+   │  │   ├─ SecurityConfig.java ・・ 【山川】ログイン
+   │  │   └─ HomeController.java ・・ 【指輪】トップ・ログイン画面
+   │  ├─ settings/ ・・・・・・・・ 【指輪】画面「設定」
+   │  │   ├─ AppSettings.java ・・・ 設定の読み書き
+   │  │   └─ SettingsController.java ・ 画面「設定」・GAS版からの取り込み
+   │  └─ common/ ・・・・・・・・・ 【全員】共通部品（TimeText・Ids・例外）
+   ├─ main/resources/
+   │  ├─ application.yml ・・・・・ 【全員】アプリの設定
+   │  ├─ db/migration/ ・・・・・・ 【山川】DB の表（V1〜V3。足すときは V4__）
+   │  ├─ templates/ ・・・・・・・ 【指輪】画面（Thymeleaf）
+   │  │   ├─ fragments/layout.html ・ 共通の枠・メニュー
+   │  │   ├─ login.html ・・・・・ ログイン
+   │  │   ├─ employees/list.html・form.html ・ 社員一覧・登録
+   │  │   ├─ monthly/index.html ・ 月次集計
+   │  │   └─ settings/index.html ・ 設定
+   │  └─ static/css/app.css ・・・ 【指輪】見た目
+   └─ test/java/app/kintai/
+      ├─ aggregate/AggregationRulesTest.java ・ 【横田】
+      ├─ attendance/MonthSheetParserTest.java ・ 【横田】
+      ├─ employee/EmployeeImportTest.java ・・ 【宮谷】
+      ├─ expense/ExpenseTotalsTest.java ・・・ 【山川】
+      ├─ monthly/CsvExporterTest.java ・・・・ 【山川】
+      └─ ScreensTest.java ・・・・・・・・・ 【指輪】画面の流れ
+```
+
+## 毎月の流れ
+1. 月次集計 ①「全員の勤怠シートに月のシートを作る」
+2. 社員が勤怠シートに入力。交通費・経費は Google フォームで申請し、山本さんが回答シートの「承認」を TRUE にする
+3. 月次集計 ②「集計する」… 入力チェック → 集計ルール → 手当・交通費・経費を足して保存（エラーの人は一覧に出る）
+4. 月次集計 ③ CSV ダウンロード・社労士へメール → ④「確定」
 
 ## 動かす（Codespaces・自分のPC）
 ```
 gradle bootRun            # http://localhost:8080 （ユーザー名 yamamoto ／ パスワード change-me）
-gradle test               # テスト（集計ルール・画面の流れ）
+gradle test               # テスト
 ```
-何も設定しなければ、DB はファイル（./data）、Google は仮データで動く（どの勤怠シートも平日 9:30〜18:30 として読む）。
+何も設定しなければ、DB はファイル（./data）、Google は仮データで動く。
 
-## 本番の設定（環境変数）
+## Git の使い方（ぶつからないように）
+1. 作業を始める前に `git pull`
+2. 作業ごとにブランチを作る：`git switch -c 名前/作業内容`（例：`yokota/overtime-rule`）
+3. こまめにコミット。メッセージは日本語で「何をしたか」を書く
+4. `git push` して Pull Request を作り、だれか1人に見てもらってから main に入れる
+5. Actions（自動テスト）が緑になってから入れる
+- 鍵ファイル・パスワードは絶対にコミットしない
+
+## 本番の設定（環境変数。本番に出すと決めてから用意する）
 | 名前 | 中身 |
 |---|---|
 | DB_URL / DB_USER / DB_PASSWORD | PostgreSQL の接続先 |
 | ADMIN_USER / ADMIN_PASSWORD | ログイン（必ず変える） |
-| GOOGLE_CREDENTIALS | サービスアカウントの鍵ファイル（JSON）の場所。鍵は Git に入れない |
-| SPRING_MAIL_HOST / SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | 社労士へメールを送るとき（Gmail はアプリパスワード） |
-
-### Google の準備（1回だけ）
-1. Google Cloud でプロジェクトを作り、Google Sheets API と Google Drive API を有効にする
-2. サービスアカウントを作り、鍵（JSON）をダウンロードする
-3. サービスアカウントのメールアドレスに、次を「編集者」で共有する：勤怠表のひな型、社員フォルダの親フォルダ、退職者フォルダ、フォームの回答シート、既存の社員の勤怠シート
-4. 画面「設定」に、それぞれの URL を貼る
-
-## 集計（計算）を作るとき
-1. 社労士に確認したルールを、まず src/test/java/app/kintai/aggregate/AggregationRulesTest に例として書く
-2. AggregationRules を直して、gradle test が通ることを確かめる
-3. 月次集計の列を足すときは、monthly/MonthlyColumns・MonthlyRecord・db/migration を同じ順番で足す
-
-詳しい設計は docs/設計.md。
-
-## チームで進めるとき
-- **分担と Git の使い方：docs/分担.md**（まずここを読む）
-- 各フォルダの README.md に、そのフォルダの担当・中身・やることがある
-- GAS 版からの切り替え：docs/GAS停止手順.md
-
-> **全員へ（2026-11-26）**：Java版はまだ構築中です。各フォルダの最新コミットメッセージに、担当者へのお願いを書いています。
+| GOOGLE_CREDENTIALS | サービスアカウントの鍵ファイルの場所（鍵は Git に入れない） |
+| SPRING_MAIL_HOST / SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | 社労士へのメール |
