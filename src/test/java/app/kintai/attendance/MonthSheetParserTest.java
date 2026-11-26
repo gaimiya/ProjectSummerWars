@@ -1,3 +1,4 @@
+// 担当：横田さん（勤怠シート読み取りのテスト）。変更する前に attendance/README.md を読み、担当外の人は担当者に相談する
 package app.kintai.attendance;
 
 import org.junit.jupiter.api.Test;
